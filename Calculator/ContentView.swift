@@ -63,14 +63,11 @@ struct ContentView: View {
   @State private var leftValue: Double = 0
   @State private var rightValue: Double? = nil
   @State private var op: ButtonKey.DoubleOperator? = nil
-  @State private var hasPoint = false
-  
+  @State private var hasPointSuffix = false
+
   var displayValue: String {
-    let formatter = NumberFormatter()
-    let number = NSNumber(value: rightValue ?? leftValue)
-    formatter.minimumFractionDigits = 0
-    formatter.maximumFractionDigits = 16
-    return formatter.string(from: number) ?? "0"
+    let formattedValue = format(value: rightValue ?? leftValue) ?? "0"
+    return hasPointSuffix ? "\(formattedValue)." : formattedValue
   }
   
   var width: CGFloat {
@@ -80,11 +77,27 @@ struct ContentView: View {
   var height: CGFloat {
     UIScreen.main.bounds.size.height
   }
+
+  private func format(value: Double) -> String? {
+    let formatter = NumberFormatter()
+    let number = NSNumber(value: value)
+    formatter.minimumFractionDigits = 0
+    formatter.maximumFractionDigits = 16
+    return formatter.string(from: number)
+  }
   
   func handleNumberInput(key: ButtonKey.Number) {
     if case .equal = op {
-      leftValue = Double(key.rawValue)!
+      leftValue = Double(key.rawValue) ?? 0
       op = nil
+
+      guard case .point = key else {
+        return
+      }
+    }
+
+    if case .point = key {
+      hasPointSuffix = !displayValue.contains(".")
       return
     }
 
@@ -95,6 +108,7 @@ struct ContentView: View {
         ? Double(key.rawValue)
         : Double("\(displayValue)\(key.rawValue)")!
     }
+    hasPointSuffix = false
   }
   
   func handleSingleOperator(key: ButtonKey.SingleOperator) {
