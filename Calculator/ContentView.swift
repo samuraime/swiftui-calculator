@@ -18,18 +18,20 @@ struct Theme {
     static let height: CGFloat = UIScreen.main.bounds.size.width / 5 * 0.8
   }
   
-  struct UIColor {
-    static let white = #colorLiteral(red: 0.9725490196, green: 0.9725490196, blue: 0.9725490196, alpha: 1) // white button
-    static let gray1 = #colorLiteral(red: 0.8823529412, green: 0.8784313725, blue: 0.8745098039, alpha: 1) // background
-    static let gray2 = #colorLiteral(red: 0.8235294118, green: 0.8235294118, blue: 0.7607843137, alpha: 1) // screen
-    static let gray3 = #colorLiteral(red: 0.4549019608, green: 0.4509803922, blue: 0.4509803922, alpha: 1) // drak button
-    static let gray4 = #colorLiteral(red: 0.3882352941, green: 0.3764705882, blue: 0.3647058824, alpha: 1) // screen border
-    static let gray5 = #colorLiteral(red: 0.3529411765, green: 0.337254902, blue: 0.3254901961, alpha: 1) // button text
-    static let orange = #colorLiteral(red: 0.9411764706, green: 0.431372549, blue: 0.2745098039, alpha: 1) // orange button
+  struct Color {
+    static let lightButtonBackground = SwiftUI.Color(#colorLiteral(red: 0.9725490196, green: 0.9725490196, blue: 0.9725490196, alpha: 1))
+    static let lightButtonSelectedBackground = SwiftUI.Color(#colorLiteral(red: 0.9294117647, green: 0.9254901961, blue: 0.9137254902, alpha: 1))
+    static let lightButtonText = SwiftUI.Color(#colorLiteral(red: 0.3529411765, green: 0.337254902, blue: 0.3254901961, alpha: 1))
+    static let darkButtonBackground = SwiftUI.Color(#colorLiteral(red: 0.4549019608, green: 0.4509803922, blue: 0.4509803922, alpha: 1))
+    static let darkButtonSelectedBackground = SwiftUI.Color(#colorLiteral(red: 0.3803921569, green: 0.3803921569, blue: 0.3803921569, alpha: 1))
+    static let darkButtonText = SwiftUI.Color(#colorLiteral(red: 0.9725490196, green: 0.9725490196, blue: 0.9725490196, alpha: 1))
+    static let appBackground = SwiftUI.Color(#colorLiteral(red: 0.8823529412, green: 0.8784313725, blue: 0.8745098039, alpha: 1))
+    static let screenBackground = SwiftUI.Color(#colorLiteral(red: 0.8235294118, green: 0.8235294118, blue: 0.7607843137, alpha: 1))
+    static let screenBorder = SwiftUI.Color(#colorLiteral(red: 0.3882352941, green: 0.3764705882, blue: 0.3647058824, alpha: 1))
   }
 }
 
-enum ButtonKey {
+enum CalculatorKey {
   enum Number: String {
     case one = "1"
     case two = "2"
@@ -62,19 +64,18 @@ enum ButtonKey {
 struct ContentView: View {
   @State private var leftValue: Double = 0
   @State private var rightValue: Double? = nil
-  @State private var op: ButtonKey.DoubleOperator? = nil
+  @State private var op: CalculatorKey.DoubleOperator? = nil
   @State private var hasPointSuffix = false
 
-  var displayValue: String {
+  private var displayValue: String {
     let formattedValue = format(value: rightValue ?? leftValue) ?? "0"
     return hasPointSuffix ? "\(formattedValue)." : formattedValue
   }
   
-  var width: CGFloat {
+  private var width: CGFloat {
     UIScreen.main.bounds.size.width
   }
-  
-  var height: CGFloat {
+  private var height: CGFloat {
     UIScreen.main.bounds.size.height
   }
 
@@ -86,7 +87,7 @@ struct ContentView: View {
     return formatter.string(from: number)
   }
   
-  func handleNumberInput(key: ButtonKey.Number) {
+  func handleNumberInput(key: CalculatorKey.Number) {
     if case .equal = op {
       leftValue = Double(key.rawValue) ?? 0
       op = nil
@@ -111,7 +112,7 @@ struct ContentView: View {
     hasPointSuffix = false
   }
   
-  func handleSingleOperator(key: ButtonKey.SingleOperator) {
+  func handleSingleOperator(key: CalculatorKey.SingleOperator) {
     op = nil
     rightValue = nil
     switch key {
@@ -124,7 +125,7 @@ struct ContentView: View {
     }
   }
   
-  func handleDoubleOperator(key: ButtonKey.DoubleOperator) {
+  func handleDoubleOperator(key: CalculatorKey.DoubleOperator) {
     guard let right = rightValue, op != nil else {
       op = key
       return
@@ -155,22 +156,22 @@ struct ContentView: View {
           SingleOperatorArea(onInput: handleSingleOperator)
           NumberArea(onInput: handleNumberInput)
         }
-        OperatorArea(onInput: handleDoubleOperator)
+        DoubleOperatorArea(onInput: handleDoubleOperator)
       }
       Spacer()
     }
     .padding(Theme.Grid.spacing)
-    .background(Color(Theme.UIColor.gray1))
+    .background(Theme.Color.appBackground)
   }
 }
 
 struct NumberScreen: View {
   var value: String
   
-  var width: CGFloat {
+  private var width: CGFloat {
     Theme.Grid.width * 4 + Theme.Grid.spacing * 3
   }
-  var height: CGFloat {
+  private var height: CGFloat {
     Theme.Grid.height * 2 + Theme.Grid.spacing * 1
   }
   
@@ -179,26 +180,31 @@ struct NumberScreen: View {
       .frame(width: width, height: height, alignment: .bottomTrailing)
       .font(.system(size: 42, weight: .bold, design: .monospaced))
       .foregroundColor(.black)
-      .background(Color(Theme.UIColor.gray2))
+      .background(Theme.Color.screenBackground)
       .cornerRadius(10)
       .overlay(
         RoundedRectangle(cornerRadius: 10)
-          .stroke(Color(Theme.UIColor.gray4), lineWidth: 5)
+          .stroke(Theme.Color.screenBorder, lineWidth: 5)
       )
   }
 }
 
-struct OperatorArea: View {
-  private let operators: [ButtonKey.DoubleOperator] = [.divide, .multiply, .subtract, .add, .equal]
+struct DoubleOperatorArea: View {
+  private let operators: [CalculatorKey.DoubleOperator] = [
+    .divide, .multiply, .subtract, .add, .equal
+  ]
 
-  var onInput: (ButtonKey.DoubleOperator) -> Void
+  var onInput: (CalculatorKey.DoubleOperator) -> Void
   
   var body: some View {
     VStack (spacing: Theme.Grid.spacing) {
       ForEach(operators, id: \.self) { op in
         KeyButton(
           label: op.rawValue,
-          style: KeyButtonStyle(background: Color(Theme.UIColor.gray3)),
+          style: KeyButtonStyle(
+            background: Theme.Color.darkButtonBackground,
+            selectedBackground: Theme.Color.darkButtonSelectedBackground
+          ),
           action: {
             self.onInput(op)
           }
@@ -209,18 +215,21 @@ struct OperatorArea: View {
 }
 
 struct SingleOperatorArea: View {
-  private let operators: [ButtonKey.SingleOperator] = [
+  private let operators: [CalculatorKey.SingleOperator] = [
     .allClear, .reverseSign, .percentage
   ]
   
-  var onInput: ((ButtonKey.SingleOperator) -> Void)
+  var onInput: (CalculatorKey.SingleOperator) -> Void
   
   var body: some View {
     HStack (spacing: Theme.Grid.spacing) {
       ForEach(operators, id: \.self) { op in
         KeyButton(
           label: op.rawValue,
-          style: KeyButtonStyle(background: Color(Theme.UIColor.gray3)),
+          style: KeyButtonStyle(
+            background: Theme.Color.darkButtonBackground,
+            selectedBackground: Theme.Color.darkButtonSelectedBackground
+          ),
           action: {
             self.onInput(op)
           }
@@ -231,17 +240,18 @@ struct SingleOperatorArea: View {
 }
 
 struct NumberArea: View {
-  private let numbers: [[ButtonKey.Number]] = [
+  private let numbers: [[CalculatorKey.Number]] = [
     [.seven, .eight, .nine],
     [.four, .five, .six],
     [.one, .two, .three],
   ]
   
-  var onInput: (ButtonKey.Number) -> Void
+  var onInput: (CalculatorKey.Number) -> Void
   
   var buttonStyle = KeyButtonStyle(
-    background: Color(Theme.UIColor.white),
-    color: Color(Theme.UIColor.gray5)
+    background: Theme.Color.lightButtonBackground,
+    selectedBackground: Theme.Color.lightButtonSelectedBackground,
+    color: Theme.Color.lightButtonText
   )
   
   var body: some View {
@@ -261,10 +271,11 @@ struct NumberArea: View {
       }
       HStack (spacing: Theme.Grid.spacing) {
         KeyButton(
-          label: ButtonKey.Number.zero.rawValue,
+          label: CalculatorKey.Number.zero.rawValue,
           style: KeyButtonStyle(
             colSpan: 2,
             background: buttonStyle.background,
+            selectedBackground: buttonStyle.selectedBackground,
             color: buttonStyle.color
           ),
           action: {
@@ -272,7 +283,7 @@ struct NumberArea: View {
           }
         )
         KeyButton(
-          label: ButtonKey.Number.point.rawValue,
+          label: CalculatorKey.Number.point.rawValue,
           style: buttonStyle,
           action: {
             self.onInput(.point)
@@ -287,17 +298,18 @@ struct KeyButtonStyle: ButtonStyle {
   var rowSpan: Int = 1
   var colSpan: Int = 1
   var background: Color = Color.gray
+  var selectedBackground: Color = Color.gray
   var color: Color = Color.white
   
-  var width: CGFloat {
+  private var width: CGFloat {
     let span = CGFloat(colSpan)
     return Theme.Grid.width * span + Theme.Grid.spacing * (span - 1)
   }
-  var height: CGFloat {
+  private var height: CGFloat {
     let span = CGFloat(rowSpan)
     return Theme.Grid.height * span + Theme.Grid.spacing * (span - 1)
   }
-  var radius: CGFloat {
+  private var radius: CGFloat {
     min(width, height) * 0.15
   }
   
@@ -310,7 +322,7 @@ struct KeyButtonStyle: ButtonStyle {
     )
       .font(.system(size: 32, weight: .semibold, design: .monospaced))
       .foregroundColor(color)
-      .background(background)
+      .background(configuration.isPressed ? selectedBackground : background)
       .cornerRadius(radius)
   }
 }
