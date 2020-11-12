@@ -62,16 +62,10 @@ enum CalculatorKey {
 }
 
 struct ContentView: View {
-  @State private var leftValue: Double = 0
-  @State private var rightValue: Double? = nil
+  @State private var value: Double = 0
+  @State private var displayValue: String? = nil
   @State private var op: CalculatorKey.DoubleOperator? = nil
-  @State private var hasPointSuffix = false
 
-  private var displayValue: String {
-    let formattedValue = format(value: rightValue ?? leftValue) ?? "0"
-    return hasPointSuffix ? "\(formattedValue)." : formattedValue
-  }
-  
   private var width: CGFloat {
     UIScreen.main.bounds.size.width
   }
@@ -88,82 +82,91 @@ struct ContentView: View {
   }
   
   func handleNumberInput(key: CalculatorKey.Number) {
-    if case .equal = op {
-      leftValue = Double(key.rawValue) ?? 0
-      op = nil
-
-      guard case .point = key else {
-        return
+    // first input
+    guard displayValue != nil else {
+      if case .point = key {
+        displayValue = "0."
+      } else {
+        displayValue = key.rawValue
       }
-    }
-
-    if case .point = key {
-      hasPointSuffix = !displayValue.contains(".")
       return
     }
 
-    if op == nil {
-      leftValue = Double("\(displayValue)\(key.rawValue)")!
-    } else {
-      rightValue = rightValue == nil
-        ? Double(key.rawValue)
-        : Double("\(displayValue)\(key.rawValue)")!
+    // avoid double 0
+    if displayValue!.count == 1, displayValue![displayValue!.startIndex] == "0", key != .point {
+      displayValue = key.rawValue
+      return
     }
-    hasPointSuffix = false
+
+    // avoid multiple .
+    if key == .point, displayValue!.contains(".") {
+      return
+    }
+
+    displayValue! += key.rawValue
   }
   
   func handleSingleOperator(key: CalculatorKey.SingleOperator) {
-    if case .allClear = key {
-      op = nil
+    guard displayValue != nil else {
+      switch key {
+        case .allClear:
+          op = nil
+          value = 0
+        case .reverseSign:
+          value *= -1
+        case .percentage:
+          value *= 0.01
+      }
+      return
     }
 
-    if rightValue == nil {
-      switch key {
-        case .allClear:
-          leftValue = 0
-        case .reverseSign:
-          leftValue *= -1
-        case .percentage:
-          leftValue *= 0.01
-      }
-    } else {
-      switch key {
-        case .allClear:
-          rightValue = 0
-        case .reverseSign:
-          rightValue! *= -1
-        case .percentage:
-          rightValue! *= 0.01
-      }
+    var currentValue = Double(displayValue!) ?? 0
+    switch key {
+      case .allClear:
+        op = nil
+        value = 0
+        currentValue = 0
+      case .reverseSign:
+        currentValue *= -1
+      case .percentage:
+        currentValue *= 0.01
     }
+    displayValue = format(value: currentValue)
   }
   
   func handleDoubleOperator(key: CalculatorKey.DoubleOperator) {
-    guard let right = rightValue, op != nil else {
+    guard displayValue != nil else {
       op = key
+      return
+    }
+
+    guard let right = Double(displayValue!), op != nil else {
+      value = Double(displayValue!) ?? 0
+      op = key
+      displayValue = nil
       return
     }
 
     switch op {
       case .add:
-        leftValue += right
+        value += right
       case .subtract:
-        leftValue -= right
+        value -= right
       case .multiply:
-        leftValue *= right
+        value *= right
       case .divide:
-        leftValue /= right
+        value /= right
       default:
         break
     }
     op = key
-    rightValue = nil
+    displayValue = nil
   }
   
   var body: some View {
     VStack (spacing: Theme.Grid.spacing * 2) {
       Spacer()
-      NumberScreen(value: displayValue)
+      NumberScreen(value: displayValue ?? format(value: value) ?? "0")
       HStack (spacing: Theme.Grid.spacing) {
         VStack (spacing: Theme.Grid.spacing) {
           SingleOperatorArea(onInput: handleSingleOperator)
@@ -190,7 +193,12 @@ struct NumberScreen: View {
   
   var body: some View {
     Text(value)
-      .frame(width: width, height: height, alignment: .bottomTrailing)
+      .frame(
+        width: width - 2 * Theme.Grid.spacing,
+        height: height - 2 * Theme.Grid.spacing,
+        alignment: .bottomTrailing
+      )
+      .padding(Theme.Grid.spacing)
       .font(.system(size: 42, weight: .bold, design: .monospaced))
       .foregroundColor(.black)
       .background(Theme.Color.screenBackground)
