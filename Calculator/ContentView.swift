@@ -113,15 +113,28 @@ struct ContentView: View {
   }
   
   func handleSingleOperator(key: CalculatorKey.SingleOperator) {
-    op = nil
-    rightValue = nil
-    switch key {
-      case .allClear:
-        leftValue = 0
-      case .reverseSign:
-        leftValue *= -1
-      case .percentage:
-        leftValue *= 0.01
+    if case .allClear = key {
+      op = nil
+    }
+
+    if rightValue == nil {
+      switch key {
+        case .allClear:
+          leftValue = 0
+        case .reverseSign:
+          leftValue *= -1
+        case .percentage:
+          leftValue *= 0.01
+      }
+    } else {
+      switch key {
+        case .allClear:
+          rightValue = 0
+        case .reverseSign:
+          rightValue! *= -1
+        case .percentage:
+          rightValue! *= 0.01
+      }
     }
   }
   
@@ -156,7 +169,7 @@ struct ContentView: View {
           SingleOperatorArea(onInput: handleSingleOperator)
           NumberArea(onInput: handleNumberInput)
         }
-        DoubleOperatorArea(onInput: handleDoubleOperator)
+        DoubleOperatorArea(selectedOperator: op, onInput: handleDoubleOperator)
       }
       Spacer()
     }
@@ -194,8 +207,9 @@ struct DoubleOperatorArea: View {
     .divide, .multiply, .subtract, .add, .equal
   ]
 
+  var selectedOperator: CalculatorKey.DoubleOperator?
   var onInput: (CalculatorKey.DoubleOperator) -> Void
-  
+
   var body: some View {
     VStack (spacing: Theme.Grid.spacing) {
       ForEach(operators, id: \.self) { op in
@@ -203,7 +217,8 @@ struct DoubleOperatorArea: View {
           label: op.rawValue,
           style: KeyButtonStyle(
             background: Theme.Color.darkButtonBackground,
-            selectedBackground: Theme.Color.darkButtonSelectedBackground
+            selectedBackground: Theme.Color.darkButtonSelectedBackground,
+            isBorderHidden: self.selectedOperator != op || op == .equal
           ),
           action: {
             self.onInput(op)
@@ -300,6 +315,7 @@ struct KeyButtonStyle: ButtonStyle {
   var background: Color = Color.gray
   var selectedBackground: Color = Color.gray
   var color: Color = Color.white
+  var isBorderHidden = true
   
   private var width: CGFloat {
     let span = CGFloat(colSpan)
@@ -324,6 +340,10 @@ struct KeyButtonStyle: ButtonStyle {
       .foregroundColor(color)
       .background(configuration.isPressed ? selectedBackground : background)
       .cornerRadius(radius)
+      .overlay(
+        RoundedRectangle(cornerRadius: radius)
+          .stroke(Color.black, lineWidth: isBorderHidden ? 0 : 2)
+      )
   }
 }
 
